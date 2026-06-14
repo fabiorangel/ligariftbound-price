@@ -2,7 +2,6 @@
 import Base from "@/layouts/Base.astro";
 import CardSearch from "@/components/CardSearch";
 import MarketStats from "@/components/MarketStats";
-import MarketChart from "@/components/MarketChart";
 import MoversList from "@/components/MoversList";
 import PotencialList from "@/components/PotencialList";
 
@@ -24,14 +23,6 @@ const base = import.meta.env.BASE_URL;
   <!-- Market stats -->
   <section class="mb-10">
     <MarketStats client:load dataUrl={`${base}data/market/latest.json`} />
-  </section>
-
-  <!-- Market evolution chart -->
-  <section class="mb-12">
-    <h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">
-      Evolução do mercado (30d)
-    </h2>
-    <MarketChart client:load dataUrl={`${base}data/market/history.json`} />
   </section>
 
   <!-- Movers preview -->
