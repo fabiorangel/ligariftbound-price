@@ -1,0 +1,67 @@
+---
+import Base from "@/layouts/Base.astro";
+import CardSearch from "@/components/CardSearch";
+import MarketStats from "@/components/MarketStats";
+import MarketChart from "@/components/MarketChart";
+import MoversList from "@/components/MoversList";
+import PotencialList from "@/components/PotencialList";
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Base title="Dashboard">
+  <!-- Hero search -->
+  <div class="mb-10 text-center">
+    <h1 class="mb-2 text-3xl font-bold text-white">
+      LigaRiftbound <span class="text-[var(--color-brand-light)]">Price</span>
+    </h1>
+    <p class="mb-8 text-sm text-[var(--color-muted)]">
+      Preços e analytics do marketplace LigaRiftbound · atualizado diariamente
+    </p>
+    <CardSearch client:load dataUrl={`${base}data/cards.json`} base={base} />
+  </div>
+
+  <!-- Market stats -->
+  <section class="mb-10">
+    <MarketStats client:load dataUrl={`${base}data/market/latest.json`} />
+  </section>
+
+  <!-- Market evolution chart -->
+  <section class="mb-12">
+    <h2 class="mb-4 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">
+      Evolução do mercado (30d)
+    </h2>
+    <MarketChart client:load dataUrl={`${base}data/market/history.json`} />
+  </section>
+
+  <!-- Movers preview -->
+  <section class="mb-12">
+    <h2 class="mb-6 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">
+      Movimentos da semana
+    </h2>
+    <MoversList
+      client:load
+      dataUrl={`${base}data/movers/latest.json`}
+      cardsUrl={`${base}data/cards.json`}
+      base={base}
+      limit={5}
+    />
+  </section>
+
+  <!-- Potencial preview -->
+  <section class="mb-4">
+    <h2 class="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">
+      Maior potencial de alta
+    </h2>
+    <p class="mb-6 text-xs text-[var(--color-muted)]">
+      Cartas em valorização. Clique para ver a curva de profundidade de preço.
+    </p>
+    <PotencialList
+      client:load
+      cardsUrl={`${base}data/cards.json`}
+      marketUrl={`${base}data/market/latest.json`}
+      base={base}
+      limit={6}
+    />
+  </section>
+</Base>

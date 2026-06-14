@@ -1,0 +1,22 @@
+---
+import Base from "@/layouts/Base.astro";
+import MoversList from "@/components/MoversList";
+
+const base = import.meta.env.BASE_URL;
+---
+
+<Base title="Movimentos" description="Maiores altas e baixas de preço da semana">
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-white mb-1">Movimentos de preço</h1>
+    <p class="text-[var(--color-muted)] text-sm">
+      Maiores variações dos últimos 7 dias.
+    </p>
+  </div>
+
+  <MoversList
+    client:load
+    dataUrl={`${base}data/movers/latest.json`}
+    cardsUrl={`${base}data/cards.json`}
+    base={base}
+  />
+</Base>
