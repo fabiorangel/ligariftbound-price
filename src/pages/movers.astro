@@ -2,7 +2,7 @@
 import Base from "@/layouts/Base.astro";
 import MoversList from "@/components/MoversList";
 
-const base = import.meta.env.BASE_URL;
+const base = (import.meta.env.BASE_URL as string).replace(/\/?$/, '/');
 ---
 
 <Base title="Movimentos" description="Maiores altas e baixas de preço da semana">

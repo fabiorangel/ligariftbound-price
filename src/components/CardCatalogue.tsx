@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import Fuse from "fuse.js";
+import { useState, useEffect, useMemo } from "react";
 
 interface Card {
   code: string;
@@ -67,41 +66,34 @@ function CardThumb({
   );
 }
 
+function matchesQuery(card: Card, q: string) {
+  const lq = q.toLowerCase();
+  return (
+    card.name.toLowerCase().includes(lq) ||
+    card.edition_code.toLowerCase().includes(lq) ||
+    card.card_number.toLowerCase().includes(lq)
+  );
+}
+
 export default function CardCatalogue({ dataUrl, base }: Props) {
   const [cards, setCards] = useState<Card[]>([]);
   const [query, setQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [dropdownResults, setDropdownResults] = useState<Card[]>([]);
   const [sort, setSort] = useState<{ key: keyof Card; dir: 1 | -1 }>({
     key: "latest_price_avg",
     dir: -1,
   });
-  const fuseRef = useRef<Fuse<Card> | null>(null);
 
   useEffect(() => {
     fetch(dataUrl)
       .then((r) => r.json())
-      .then((data: Card[]) => {
-        setCards(data);
-        fuseRef.current = new Fuse(data, {
-          keys: ["name", "edition_code", "card_number"],
-          threshold: 0.3,
-          minMatchCharLength: 2,
-        });
-      });
+      .then((data: Card[]) => setCards(data));
   }, [dataUrl]);
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value;
     setQuery(q);
-    if (!q.trim() || !fuseRef.current) {
-      setDropdownResults([]);
-      setDropdownOpen(false);
-      return;
-    }
-    const hits = fuseRef.current.search(q).slice(0, 8).map((r) => r.item);
-    setDropdownResults(hits);
-    setDropdownOpen(hits.length > 0);
+    setDropdownOpen(q.trim().length >= 2);
   }
 
   function handleSelect(card: Card) {
@@ -112,9 +104,15 @@ export default function CardCatalogue({ dataUrl, base }: Props) {
     setSort((s) => ({ key, dir: s.key === key ? (-s.dir as 1 | -1) : -1 }));
   }
 
-  const filtered = query.trim() && fuseRef.current
-    ? fuseRef.current.search(query).map((r) => r.item)
-    : cards;
+  const dropdownResults = useMemo(
+    () => (query.trim().length >= 2 ? cards.filter((c) => matchesQuery(c, query)).slice(0, 8) : []),
+    [cards, query]
+  );
+
+  const filtered = useMemo(
+    () => (query.trim().length >= 2 ? cards.filter((c) => matchesQuery(c, query)) : cards),
+    [cards, query]
+  );
 
   const sorted = [...filtered].sort((a, b) => {
     const av = a[sort.key] ?? -Infinity;

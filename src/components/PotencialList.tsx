@@ -11,14 +11,8 @@ interface Card {
   pct_change_7d: number | null;
 }
 
-interface MarketSnapshot {
-  date: string;
-  mean_price: number | null;
-}
-
 interface Props {
   cardsUrl: string;
-  marketUrl: string;
   base: string;
   limit?: number;
 }
@@ -28,24 +22,17 @@ function formatBRL(v: number | null) {
   return `R$ ${v.toFixed(2)}`;
 }
 
-export default function PotencialList({ cardsUrl, marketUrl, base, limit }: Props) {
+export default function PotencialList({ cardsUrl, base, limit }: Props) {
   const [cards, setCards] = useState<Card[]>([]);
-  const [meanPrice, setMeanPrice] = useState<number | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetch(cardsUrl).then((r) => r.json()) as Promise<Card[]>,
-      fetch(marketUrl)
-        .then((r) => r.json())
-        .catch(() => ({ mean_price: null })) as Promise<MarketSnapshot>,
-    ]).then(([allCards, market]) => {
+    (fetch(cardsUrl).then((r) => r.json()) as Promise<Card[]>).then((allCards) => {
       const rising = allCards
         .filter((c) => c.trend === "up" && c.pct_change_7d != null && c.pct_change_7d > 0)
         .sort((a, b) => (b.pct_change_7d ?? 0) - (a.pct_change_7d ?? 0));
       setCards(rising);
-      setMeanPrice(market.mean_price ?? null);
     });
-  }, [cardsUrl, marketUrl]);
+  }, [cardsUrl]);
 
   if (!cards.length) {
     return (
@@ -70,7 +57,6 @@ export default function PotencialList({ cardsUrl, marketUrl, base, limit }: Prop
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {displayed.map((card) => {
         const imgSrc = `${base}assets/${card.edition_code}/${card.card_number}.webp`;
-        const belowAvg = meanPrice != null && card.latest_price_avg != null && card.latest_price_avg < meanPrice;
         return (
           <a
             key={card.code}
@@ -99,11 +85,6 @@ export default function PotencialList({ cardsUrl, marketUrl, base, limit }: Prop
                 <span className="font-mono text-sm font-bold text-white">
                   {formatBRL(card.latest_price_avg)}
                 </span>
-                {belowAvg && (
-                  <span className="rounded-full bg-[var(--color-brand)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-brand-light)]">
-                    Abaixo da média
-                  </span>
-                )}
               </div>
               <div className="mt-1">
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-xs font-semibold text-emerald-400">

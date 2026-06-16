@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import Fuse from "fuse.js";
+import { useState, useEffect, useMemo } from "react";
 
 interface Card {
   code: string;
@@ -7,7 +6,7 @@ interface Card {
   name: string;
   edition_code: string;
   card_number: string;
-  latest_price_avg: number | null;
+  latest_price_min: number | null;
 }
 
 interface Props {
@@ -15,35 +14,35 @@ interface Props {
   base: string;
 }
 
+function matchesQuery(card: Card, q: string) {
+  const lq = q.toLowerCase();
+  return (
+    card.name.toLowerCase().includes(lq) ||
+    card.edition_code.toLowerCase().includes(lq) ||
+    card.card_number.toLowerCase().includes(lq)
+  );
+}
+
 export default function CardSearch({ dataUrl, base }: Props) {
+  const [cards, setCards] = useState<Card[]>([]);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Card[]>([]);
   const [open, setOpen] = useState(false);
-  const fuseRef = useRef<Fuse<Card> | null>(null);
 
   useEffect(() => {
     fetch(dataUrl)
       .then((r) => r.json())
-      .then((cards: Card[]) => {
-        fuseRef.current = new Fuse(cards, {
-          keys: ["name", "edition_code", "card_number"],
-          threshold: 0.3,
-          minMatchCharLength: 2,
-        });
-      });
+      .then((data: Card[]) => setCards(data));
   }, [dataUrl]);
+
+  const results = useMemo(
+    () => (query.trim().length >= 2 ? cards.filter((c) => matchesQuery(c, query)).slice(0, 8) : []),
+    [cards, query]
+  );
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const q = e.target.value;
     setQuery(q);
-    if (!q.trim() || !fuseRef.current) {
-      setResults([]);
-      setOpen(false);
-      return;
-    }
-    const hits = fuseRef.current.search(q).slice(0, 8).map((r) => r.item);
-    setResults(hits);
-    setOpen(hits.length > 0);
+    setOpen(q.trim().length >= 2);
   }
 
   function handleSelect(card: Card) {
@@ -77,7 +76,7 @@ export default function CardSearch({ dataUrl, base }: Props) {
         />
         {query && (
           <button
-            onClick={() => { setQuery(""); setResults([]); setOpen(false); }}
+            onClick={() => { setQuery(""); setOpen(false); }}
             className="shrink-0 text-[var(--color-muted)] hover:text-white transition-colors text-xl leading-none"
           >
             ×
@@ -107,9 +106,9 @@ export default function CardSearch({ dataUrl, base }: Props) {
                   </div>
                   <span className="flex-1 text-sm font-medium text-white">{card.name}</span>
                   <div className="shrink-0 flex items-center gap-3">
-                    {card.latest_price_avg != null && (
+                    {card.latest_price_min != null && (
                       <span className="font-mono text-sm font-bold text-white">
-                        R$ {card.latest_price_avg.toFixed(2)}
+                        R$ {card.latest_price_min.toFixed(2)}
                       </span>
                     )}
                     <span className="font-mono text-xs text-[var(--color-muted)]">

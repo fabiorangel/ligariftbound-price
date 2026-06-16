@@ -17,7 +17,7 @@ interface CardMeta {
   slug: string;
   edition_code: string;
   card_number: string;
-  latest_price_avg: number | null;
+  latest_price_min: number | null;
   pct_change_7d: number | null;
 }
 
@@ -27,8 +27,8 @@ interface EnrichedMover {
   slug: string;
   edition_code: string;
   card_number: string;
-  price_avg_today: number | null;
-  price_avg_7d_ago: number | null;
+  price_min_today: number | null;
+  price_min_7d_ago: number | null;
   pct_change_7d: number;
 }
 
@@ -47,10 +47,10 @@ function formatBRL(v: number | null) {
 function enrich(mover: Mover, cardMap: Map<string, CardMeta>): EnrichedMover | null {
   const card = cardMap.get(mover.code);
   if (!card) return null;
-  const price_avg_today = card.latest_price_avg;
-  const price_avg_7d_ago =
-    price_avg_today != null
-      ? price_avg_today / (1 + mover.pct_change_7d / 100)
+  const price_min_today = card.latest_price_min;
+  const price_min_7d_ago =
+    price_min_today != null
+      ? price_min_today / (1 + mover.pct_change_7d / 100)
       : null;
   return {
     code: mover.code,
@@ -58,8 +58,8 @@ function enrich(mover: Mover, cardMap: Map<string, CardMeta>): EnrichedMover | n
     slug: card.slug,
     edition_code: card.edition_code,
     card_number: card.card_number,
-    price_avg_today,
-    price_avg_7d_ago,
+    price_min_today,
+    price_min_7d_ago,
     pct_change_7d: mover.pct_change_7d,
   };
 }
@@ -113,9 +113,9 @@ export default function MoversList({ dataUrl, cardsUrl, base, limit }: Props) {
             {" · "}{mover.card_number}
           </div>
           <div className="mt-2 font-mono text-xs text-[var(--color-muted)]">
-            {formatBRL(mover.price_avg_7d_ago)}
+            {formatBRL(mover.price_min_7d_ago)}
             <span className="mx-1.5 opacity-40">→</span>
-            <span className="text-white font-semibold">{formatBRL(mover.price_avg_today)}</span>
+            <span className="text-white font-semibold">{formatBRL(mover.price_min_today)}</span>
           </div>
         </div>
         <div

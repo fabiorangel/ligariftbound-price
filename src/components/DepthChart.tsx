@@ -1,4 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
 
 interface DepthLevel {
   price: number;
@@ -18,8 +27,22 @@ interface Props {
   dataUrl: string;
 }
 
+function CustomTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const { qty, price } = payload[0].payload;
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-3 text-sm shadow-2xl">
+      <div className="font-mono text-lg font-bold text-white">
+        R$ {price.toFixed(2)}
+      </div>
+      <div className="mt-1 text-xs text-[var(--color-muted)]">
+        {qty} unidades acumuladas
+      </div>
+    </div>
+  );
+}
+
 export default function DepthChart({ dataUrl }: Props) {
-  const chartRef = useRef<HTMLDivElement>(null);
   const [snapshot, setSnapshot] = useState<DepthSnapshot | null>(null);
   const [error, setError] = useState(false);
 
@@ -32,57 +55,6 @@ export default function DepthChart({ dataUrl }: Props) {
       .then(setSnapshot)
       .catch(() => setError(true));
   }, [dataUrl]);
-
-  useEffect(() => {
-    if (!chartRef.current || !snapshot || snapshot.levels.length === 0) return;
-
-    import("lightweight-charts").then(({ createChart, ColorType, LineType }) => {
-      if (!chartRef.current) return;
-      chartRef.current.innerHTML = "";
-
-      const chart = createChart(chartRef.current, {
-        layout: {
-          background: { type: ColorType.Solid, color: "#1a1a24" },
-          textColor: "#8888aa",
-        },
-        grid: {
-          vertLines: { color: "#2e2e42" },
-          horzLines: { color: "#2e2e42" },
-        },
-        crosshair: { vertLine: { color: "#7c3aed" }, horzLine: { color: "#7c3aed" } },
-        rightPriceScale: { borderColor: "#2e2e42" },
-        timeScale: { visible: false },
-        width: chartRef.current.clientWidth,
-        height: 260,
-      });
-
-      const series = chart.addLineSeries({
-        color: "#7c3aed",
-        lineWidth: 2,
-        lineType: LineType.WithSteps,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: true,
-        title: "Preço (R$)",
-      });
-
-      // lightweight-charts requires time axis; use cumulative_qty as fake time (integer index)
-      const data = snapshot.levels.map((l, i) => ({
-        time: (i + 1) as unknown as string,
-        value: l.price,
-        customValues: { cumulative_qty: l.cumulative_qty },
-      }));
-
-      series.setData(data);
-      chart.timeScale().fitContent();
-
-      const ro = new ResizeObserver(() => {
-        chart.applyOptions({ width: chartRef.current!.clientWidth });
-      });
-      ro.observe(chartRef.current);
-      return () => ro.disconnect();
-    });
-  }, [snapshot]);
 
   if (error || (snapshot && snapshot.levels.length === 0)) {
     return (
@@ -100,6 +72,11 @@ export default function DepthChart({ dataUrl }: Props) {
     );
   }
 
+  const chartData = snapshot.levels.map((l) => ({
+    qty: l.cumulative_qty,
+    price: l.price,
+  }));
+
   const levels = snapshot.levels;
   const summary = (() => {
     if (levels.length < 2) {
@@ -113,11 +90,49 @@ export default function DepthChart({ dataUrl }: Props) {
 
   return (
     <div>
-      <div
-        ref={chartRef}
-        className="w-full overflow-hidden rounded-2xl border border-[var(--color-border)] shadow-xl"
-        style={{ minHeight: 260 }}
-      />
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-6 shadow-xl">
+        <ResponsiveContainer width="100%" height={240}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 24, bottom: 20, left: 8 }}>
+            <defs>
+              <linearGradient id="depthFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2e2e42" />
+            <XAxis
+              dataKey="qty"
+              tick={{ fill: "#8888aa", fontSize: 11 }}
+              axisLine={{ stroke: "#2e2e42" }}
+              tickLine={false}
+              label={{
+                value: "unidades acumuladas",
+                position: "insideBottom",
+                fill: "#555570",
+                fontSize: 10,
+                dy: 18,
+              }}
+            />
+            <YAxis
+              tick={{ fill: "#8888aa", fontSize: 11 }}
+              tickFormatter={(v) => `R$${Number(v).toFixed(0)}`}
+              axisLine={false}
+              tickLine={false}
+              width={56}
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#7c3aed", strokeWidth: 1, strokeDasharray: "4 2" }} />
+            <Area
+              type="stepAfter"
+              dataKey="price"
+              stroke="#7c3aed"
+              strokeWidth={2}
+              fill="url(#depthFill)"
+              dot={false}
+              activeDot={{ r: 5, fill: "#7c3aed", strokeWidth: 0 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
       <p className="mt-3 text-xs text-[var(--color-muted)]">{summary}</p>
     </div>
   );

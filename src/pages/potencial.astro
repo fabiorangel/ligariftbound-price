@@ -2,7 +2,7 @@
 import Base from "@/layouts/Base.astro";
 import PotencialList from "@/components/PotencialList";
 
-const base = import.meta.env.BASE_URL;
+const base = (import.meta.env.BASE_URL as string).replace(/\/?$/, '/');
 ---
 
 <Base title="Potencial" description="Cartas em valorização com potencial de alta">
@@ -16,7 +16,6 @@ const base = import.meta.env.BASE_URL;
   <PotencialList
     client:load
     cardsUrl={`${base}data/cards.json`}
-    marketUrl={`${base}data/market/latest.json`}
     base={base}
   />
 </Base>

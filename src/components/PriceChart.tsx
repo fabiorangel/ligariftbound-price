@@ -1,4 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 interface HistoryPoint {
   date: string;
@@ -35,12 +45,34 @@ interface Props {
   base: string;
 }
 
-function formatBRL(v: number | null) {
+function formatBRL(v: number | null | undefined) {
   return v != null ? `R$ ${v.toFixed(2)}` : "—";
 }
 
+function formatDateShort(dateStr: string) {
+  const [, m, d] = dateStr.split("-");
+  return `${d}/${m}`;
+}
+
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-3 text-sm shadow-2xl">
+      <div className="mb-2 font-mono text-xs text-[var(--color-muted)]">{label}</div>
+      {payload.map((p: any) => (
+        <div key={p.dataKey} className="flex items-center gap-2 py-0.5">
+          <span style={{ color: p.color }}>●</span>
+          <span className="text-[var(--color-muted)]">{p.name}:</span>
+          <span className="font-mono font-bold" style={{ color: p.color }}>
+            {formatBRL(p.value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PriceChart({ code, slug, dataUrl, cardsUrl, base }: Props) {
-  const chartRef = useRef<HTMLDivElement>(null);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [meta, setMeta] = useState<CardMeta | null>(null);
 
@@ -54,71 +86,18 @@ export default function PriceChart({ code, slug, dataUrl, cardsUrl, base }: Prop
     }).catch(() => {});
   }, [dataUrl, cardsUrl, code]);
 
-  useEffect(() => {
-    if (!chartRef.current || history.length === 0) return;
-
-    import("lightweight-charts").then(({ createChart, ColorType, LineStyle }) => {
-      if (!chartRef.current) return;
-      chartRef.current.innerHTML = "";
-
-      const chart = createChart(chartRef.current, {
-        layout: {
-          background: { type: ColorType.Solid, color: "#1a1a24" },
-          textColor: "#8888aa",
-        },
-        grid: {
-          vertLines: { color: "#2e2e42" },
-          horzLines: { color: "#2e2e42" },
-        },
-        crosshair: { vertLine: { color: "#7c3aed" }, horzLine: { color: "#7c3aed" } },
-        rightPriceScale: { borderColor: "#2e2e42" },
-        timeScale: { borderColor: "#2e2e42", timeVisible: true },
-        width: chartRef.current.clientWidth,
-        height: 320,
-      });
-
-      const avg = chart.addLineSeries({
-        color: "#a78bfa",
-        lineWidth: 2,
-        title: "Médio",
-      });
-      const min = chart.addLineSeries({
-        color: "#34d399",
-        lineWidth: 1,
-        lineStyle: LineStyle.Dashed,
-        title: "Mín",
-      });
-      const max = chart.addLineSeries({
-        color: "#f87171",
-        lineWidth: 1,
-        lineStyle: LineStyle.Dashed,
-        title: "Máx",
-      });
-
-      const toPoint = (p: HistoryPoint, key: keyof HistoryPoint) => ({
-        time: p.date as string,
-        value: (p[key] ?? 0) as number,
-      });
-
-      avg.setData(history.filter((p) => p.price_avg != null).map((p) => toPoint(p, "price_avg")));
-      min.setData(history.filter((p) => p.price_min != null).map((p) => toPoint(p, "price_min")));
-      max.setData(history.filter((p) => p.price_max != null).map((p) => toPoint(p, "price_max")));
-
-      chart.timeScale().fitContent();
-
-      const ro = new ResizeObserver(() => {
-        chart.applyOptions({ width: chartRef.current!.clientWidth });
-      });
-      ro.observe(chartRef.current);
-      return () => ro.disconnect();
-    });
-  }, [history]);
-
   const imgSrc = meta
     ? `${base}assets/${meta.edition_code}/${meta.card_number}.webp`
     : null;
 
   const positive = meta?.pct_change_7d != null && meta.pct_change_7d >= 0;
+
+  const chartData = history.map((p) => ({
+    date: formatDateShort(p.date),
+    Médio: p.price_avg,
+    Mínimo: p.price_min,
+    Máximo: p.price_max,
+  }));
 
   return (
     <div>
@@ -190,15 +169,60 @@ export default function PriceChart({ code, slug, dataUrl, cardsUrl, base }: Prop
         </div>
       </div>
 
-      <div
-        ref={chartRef}
-        className="w-full overflow-hidden rounded-2xl border border-[var(--color-border)] shadow-xl"
-        style={{ minHeight: 320 }}
-      />
-
-      {history.length === 0 && (
+      {history.length === 0 ? (
         <div className="flex h-80 items-center justify-center rounded-2xl border border-[var(--color-border)] text-[var(--color-muted)]">
           Sem dados de histórico ainda.
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-6 shadow-xl">
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData} margin={{ top: 4, right: 24, bottom: 0, left: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2e2e42" />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: "#8888aa", fontSize: 11 }}
+                axisLine={{ stroke: "#2e2e42" }}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: "#8888aa", fontSize: 11 }}
+                tickFormatter={(v) => `R$${Number(v).toFixed(0)}`}
+                axisLine={false}
+                tickLine={false}
+                width={56}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#7c3aed", strokeWidth: 1, strokeDasharray: "4 2" }} />
+              <Legend
+                wrapperStyle={{ fontSize: 12, paddingTop: 16, color: "#8888aa" }}
+              />
+              <Line
+                type="monotone"
+                dataKey="Médio"
+                stroke="#a78bfa"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 5, fill: "#a78bfa", strokeWidth: 0 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="Mínimo"
+                stroke="#34d399"
+                strokeWidth={1.5}
+                strokeDasharray="5 3"
+                dot={false}
+                activeDot={{ r: 4, fill: "#34d399", strokeWidth: 0 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="Máximo"
+                stroke="#f87171"
+                strokeWidth={1.5}
+                strokeDasharray="5 3"
+                dot={false}
+                activeDot={{ r: 4, fill: "#f87171", strokeWidth: 0 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       )}
     </div>
