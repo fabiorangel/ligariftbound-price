@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@astrojs/react": "^5.0.7",
-    "@astrojs/tailwind": "^6.0.2",
     "astro": "^6.4.6",
     "fuse.js": "^7.4.2",
     "lightweight-charts": "^5.2.0",
