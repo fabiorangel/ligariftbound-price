@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    background-color: #0a0a0f;
+    color: #e5e5e5;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #111118;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2e2e3a;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #c9a227;
+  }
+}
+
+@layer utilities {
+  .foil {
+    background: linear-gradient(
+      105deg,
+      transparent 10%,
+      rgba(201, 162, 39, 0.15) 30%,
+      rgba(232, 204, 106, 0.3) 50%,
+      rgba(201, 162, 39, 0.15) 70%,
+      transparent 90%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+}
