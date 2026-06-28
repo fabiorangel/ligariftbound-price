@@ -30,18 +30,28 @@ export default function Home() {
       <section className="mt-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <span className="text-emerald-400">▲</span> Maiores Altas (7d)
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                <span className="text-emerald-400">▲</span> Maiores Altas (7d)
+              </h2>
+              <Link to="/movers/gainers" className="text-xs text-zinc-500 hover:text-gold-400 transition-colors">
+                Ver todos →
+              </Link>
+            </div>
             {gainers.length
               ? <MoversList entries={gainers} />
               : <p className="text-zinc-600 text-sm py-4 text-center">Carregando...</p>
             }
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-              <span className="text-red-400">▼</span> Maiores Baixas (7d)
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                <span className="text-red-400">▼</span> Maiores Baixas (7d)
+              </h2>
+              <Link to="/movers/losers" className="text-xs text-zinc-500 hover:text-gold-400 transition-colors">
+                Ver todos →
+              </Link>
+            </div>
             {losers.length
               ? <MoversList entries={losers} />
               : <p className="text-zinc-600 text-sm py-4 text-center">Carregando...</p>

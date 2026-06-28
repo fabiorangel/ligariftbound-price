@@ -12,16 +12,26 @@ export default function DepthChart({ entry }: { entry: DepthEntry }) {
 
   if (!data.length) return <p className="text-zinc-500 text-sm py-8 text-center">Sem dados</p>
 
+  // Adiciona ponto inicial em qty=0 para o gráfico começar na origem
+  const chartData = [{ price: data[0].price, cumQty: 0 }, ...data]
+
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <AreaChart layout="vertical" data={data} margin={{ top: 4, right: 12, bottom: 0, left: 8 }}>
+    <ResponsiveContainer width="100%" height={200}>
+      <AreaChart data={chartData} margin={{ top: 4, right: 12, bottom: 0, left: 8 }}>
         <defs>
-          <linearGradient id="depthGrad" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id="depthGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#c9a227" stopOpacity={0.2} />
             <stop offset="95%" stopColor="#c9a227" stopOpacity={0} />
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" stroke="#24242f" />
+        <XAxis
+          dataKey="cumQty"
+          type="number"
+          tick={{ fill: '#71717a', fontSize: 11 }}
+          tickLine={false}
+          axisLine={false}
+        />
         <YAxis
           dataKey="price"
           type="number"
@@ -32,20 +42,14 @@ export default function DepthChart({ entry }: { entry: DepthEntry }) {
           tickFormatter={v => `R$${Number(v).toFixed(2)}`}
           width={52}
         />
-        <XAxis
-          type="number"
-          tick={{ fill: '#71717a', fontSize: 11 }}
-          tickLine={false}
-          axisLine={false}
-        />
         <Tooltip
           contentStyle={{ background: '#1a1a24', border: '1px solid #2e2e3a', borderRadius: 8 }}
-          labelFormatter={v => `Preço: ${formatBRL(Number(v))}`}
-          formatter={(v: number) => [v, 'Qtd. acumulada']}
+          labelFormatter={v => `${v} unidades`}
+          formatter={(v: number) => [formatBRL(v), 'Preço']}
         />
         <Area
-          type="stepBefore"
-          dataKey="cumQty"
+          type="stepAfter"
+          dataKey="price"
           stroke="#c9a227"
           strokeWidth={2}
           fill="url(#depthGrad)"
