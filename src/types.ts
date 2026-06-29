@@ -3,6 +3,7 @@ export interface IndexEntry {
   name: string
   edition_code: string
   min_price: number
+  liga_url: string | null
   variation_7d: number | null
   variation_30d: number | null
 }
