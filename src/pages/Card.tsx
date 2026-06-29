@@ -71,7 +71,7 @@ export default function Card() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <Link
-                  to={`/edition/${editionCode}`}
+                  to={`/search?editions=${editionCode.toUpperCase()}`}
                   className="text-xs text-zinc-500 hover:text-gold-400 transition-colors uppercase tracking-widest font-semibold"
                 >
                   {editionCode.toUpperCase()} · {editionName} · #{card.number}

@@ -73,7 +73,7 @@ export default function Home() {
             return (
               <Link
                 key={ed.code}
-                to={`/edition/${ed.code.toLowerCase()}`}
+                to={`/search?editions=${ed.code}`}
                 className="group block p-4 rounded-xl bg-surface-800 border border-surface-600 hover:border-gold-500/50 hover:bg-surface-700 transition-all"
               >
                 <p className="text-xs font-bold text-gold-400 uppercase tracking-widest">

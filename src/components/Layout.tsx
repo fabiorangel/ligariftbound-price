@@ -1,13 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
-import { getSearchIndex } from '../lib/searchIndex'
+import { getSearchIndex, getAllCards } from '../lib/searchIndex'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { getSearchIndex() }, [])
+  useEffect(() => { getSearchIndex(); getAllCards() }, [])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -53,6 +53,29 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               />
             </div>
           </form>
+
+          <Link
+            to="/search"
+            className="shrink-0 flex items-center gap-1.5 border border-surface-500 hover:border-zinc-400 text-zinc-400 hover:text-zinc-100 text-sm px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M7 12h10M11 18h2" />
+            </svg>
+            <span className="hidden sm:inline">Filtrar</span>
+          </Link>
+
+          <a
+            href="https://www.buymeacoffee.com/kojiro"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0"
+          >
+            <img
+              src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+              alt="Buy Me A Coffee"
+              className="h-8 w-auto"
+            />
+          </a>
         </div>
       </header>
 

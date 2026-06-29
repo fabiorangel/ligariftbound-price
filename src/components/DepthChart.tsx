@@ -5,19 +5,22 @@ import type { DepthEntry } from '../types'
 import { formatBRL } from '../lib/format'
 
 export default function DepthChart({ entry }: { entry: DepthEntry }) {
-  const data = entry.prices.map((price, i) => ({
-    price,
-    cumQty: entry.quantities.slice(0, i + 1).reduce((a, b) => a + b, 0),
-  }))
+  const data: { price: number; cumQty: number }[] = []
+  let cumQty = 0
+  for (let i = 0; i < entry.prices.length; i++) {
+    const qty = entry.quantities[i]
+    if (qty === 0) continue
+    for (let j = 0; j < qty; j++) {
+      cumQty++
+      data.push({ price: entry.prices[i], cumQty })
+    }
+  }
 
   if (!data.length) return <p className="text-zinc-500 text-sm py-8 text-center">Sem dados</p>
 
-  // Adiciona ponto inicial em qty=0 para o gráfico começar na origem
-  const chartData = [{ price: data[0].price, cumQty: 0 }, ...data]
-
   return (
     <ResponsiveContainer width="100%" height={200}>
-      <AreaChart data={chartData} margin={{ top: 4, right: 12, bottom: 0, left: 8 }}>
+      <AreaChart data={data} margin={{ top: 4, right: 12, bottom: 0, left: 8 }}>
         <defs>
           <linearGradient id="depthGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#c9a227" stopOpacity={0.2} />
@@ -28,6 +31,7 @@ export default function DepthChart({ entry }: { entry: DepthEntry }) {
         <XAxis
           dataKey="cumQty"
           type="number"
+          domain={['dataMin', 'dataMax']}
           tick={{ fill: '#71717a', fontSize: 11 }}
           tickLine={false}
           axisLine={false}
