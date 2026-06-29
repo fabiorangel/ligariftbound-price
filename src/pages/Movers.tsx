@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import MoversList from '../components/MoversList'
@@ -11,7 +11,8 @@ export default function Movers() {
   const { data: index } = useIndex()
 
   const [minPrice, setMinPrice] = useState('')
-  const [page, setPage] = useState(1)
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   const isGainers = direction === 'gainers'
 
@@ -27,13 +28,21 @@ export default function Movers() {
       )
   }, [index, isGainers, minPrice])
 
-  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE))
-  const pageEntries = entries.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  useEffect(() => { setDisplayCount(PAGE_SIZE) }, [minPrice, isGainers])
 
-  function handleMinPrice(val: string) {
-    setMinPrice(val)
-    setPage(1)
-  }
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) setDisplayCount(n => n + PAGE_SIZE) },
+      { rootMargin: '200px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [index])
+
+  const visibleEntries = entries.slice(0, displayCount)
+  const hasMore = displayCount < entries.length
 
   return (
     <Layout>
@@ -53,7 +62,6 @@ export default function Movers() {
         )}
       </div>
 
-      {/* Filters */}
       <div className="flex items-center gap-3 mb-4 p-3 bg-surface-800 rounded-xl border border-surface-600">
         <div className="flex items-center gap-2">
           <label className="text-sm text-zinc-400 shrink-0">Preço base &gt;</label>
@@ -65,7 +73,7 @@ export default function Movers() {
               step={0.01}
               placeholder="0,00"
               value={minPrice}
-              onChange={e => handleMinPrice(e.target.value)}
+              onChange={e => { setMinPrice(e.target.value); setDisplayCount(PAGE_SIZE) }}
               className="w-24 bg-surface-700 border border-surface-500 rounded px-2 py-1.5 pl-8 text-sm text-zinc-100 focus:outline-none focus:border-gold-400"
             />
           </div>
@@ -78,29 +86,8 @@ export default function Movers() {
         <p className="text-zinc-600 text-sm py-10 text-center">Nenhuma carta encontrada.</p>
       ) : (
         <>
-          <MoversList entries={pageEntries} />
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 pt-4">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 rounded-lg border border-surface-500 text-sm text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                ← Anterior
-              </button>
-              <span className="text-sm text-zinc-500 tabular-nums">
-                {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-surface-500 text-sm text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                Próxima →
-              </button>
-            </div>
-          )}
+          <MoversList entries={visibleEntries} />
+          {hasMore && <div ref={sentinelRef} className="h-16" />}
         </>
       )}
     </Layout>

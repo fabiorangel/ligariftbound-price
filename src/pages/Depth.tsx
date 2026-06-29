@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import { useAllDepth } from '../hooks/useAllDepth'
 import { useIndex } from '../hooks/useIndex'
 import { useEditions } from '../hooks/useEditions'
 import { formatBRL, formatVariation, variationColor } from '../lib/format'
+
+const PAGE_SIZE = 50
 
 function getBasePrice(prices: number[], quantities: number[]): number | null {
   for (let i = 0; i < prices.length; i++) {
@@ -43,15 +45,17 @@ export default function Depth() {
   const [hideInsufficient, setHideInsufficient] = useState(true)
   const [sortCol, setSortCol] = useState<SortCol>('pct')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
-  const [page, setPage] = useState(1)
-  const PAGE_SIZE = 50
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const t = setTimeout(() => setX(xInput), 150)
     return () => clearTimeout(t)
   }, [xInput])
 
-  useEffect(() => { setPage(1) }, [x, editionFilter, minBasePrice, hideInsufficient, sortCol, sortDir])
+  useEffect(() => {
+    setDisplayCount(PAGE_SIZE)
+  }, [x, editionFilter, minBasePrice, hideInsufficient, sortCol, sortDir])
 
   const indexMap = useMemo(() => {
     if (!index) return new Map<string, { name: string; edition_code: string }>()
@@ -93,8 +97,20 @@ export default function Depth() {
       })
   }, [depth, indexMap, x, editionFilter, minBasePrice, hideInsufficient, sortCol, sortDir])
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const loading = !depth || !index
+  const visibleRows = rows.slice(0, displayCount)
+  const hasMore = displayCount < rows.length
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) setDisplayCount(n => n + PAGE_SIZE) },
+      { rootMargin: '200px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [loading])
 
   function toggleSort(col: SortCol) {
     if (sortCol === col) {
@@ -109,8 +125,6 @@ export default function Depth() {
     if (sortCol !== col) return null
     return sortDir === 'desc' ? ' ↓' : ' ↑'
   }
-
-  const loading = !depth || !index
 
   return (
     <Layout>
@@ -199,7 +213,6 @@ export default function Depth() {
         <p className="text-zinc-600 text-sm py-10 text-center">Nenhuma carta encontrada.</p>
       ) : (
         <div className="space-y-1">
-          {/* Column headers */}
           <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 text-xs text-zinc-600 uppercase tracking-wide">
             <span className="w-8 shrink-0 text-center">#</span>
             <span className="w-8 shrink-0" />
@@ -224,14 +237,14 @@ export default function Depth() {
             </button>
           </div>
 
-          {pageRows.map((row, i) => (
+          {visibleRows.map((row, i) => (
             <Link
               key={row.entry.riftbound_id}
               to={`/card/${encodeURIComponent(row.entry.riftbound_id)}`}
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-700/50 hover:bg-surface-700 border border-surface-600/50 hover:border-surface-500 transition-all group"
             >
               <span className="w-8 shrink-0 text-center text-sm text-zinc-600 tabular-nums">
-                {(page - 1) * PAGE_SIZE + i + 1}
+                {i + 1}
               </span>
               <img
                 src={`${import.meta.env.BASE_URL}${imageUri(row.entry.riftbound_id)}`}
@@ -251,35 +264,13 @@ export default function Depth() {
               <span className="hidden sm:block w-24 text-right text-sm text-zinc-400 tabular-nums">
                 {row.atX !== null ? formatBRL(row.atX) : '—'}
               </span>
-              <span
-                className={`w-20 text-right text-sm font-bold tabular-nums ${variationColor(row.pct)}`}
-              >
+              <span className={`w-20 text-right text-sm font-bold tabular-nums ${variationColor(row.pct)}`}>
                 {formatVariation(row.pct)}
               </span>
             </Link>
           ))}
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 pt-4">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 rounded-lg border border-surface-500 text-sm text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                ← Anterior
-              </button>
-              <span className="text-sm text-zinc-500 tabular-nums">
-                {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-surface-500 text-sm text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                Próxima →
-              </button>
-            </div>
-          )}
+          {hasMore && <div ref={sentinelRef} className="h-16" />}
         </div>
       )}
     </Layout>
