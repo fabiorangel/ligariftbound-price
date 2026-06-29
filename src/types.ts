@@ -44,8 +44,8 @@ export interface PriceEntry {
 
 export interface DepthEntry {
   riftbound_id: string
-  foil: boolean
-  language: string
+  foil?: boolean
+  language?: string
   date: string
   prices: number[]
   quantities: number[]
