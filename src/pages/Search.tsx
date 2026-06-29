@@ -153,7 +153,7 @@ export default function Search() {
 
       if (q.trim()) {
         const idx = await getSearchIndex()
-        const searchResults = idx.search(q.trim()) as { riftbound_id: string }[]
+        const searchResults = idx.search(q.trim()) as unknown as { riftbound_id: string }[]
         const rankMap = new Map(searchResults.map((r, i) => [r.riftbound_id, i]))
         candidates = allCards
           .filter(c => rankMap.has(c.riftbound_id))
