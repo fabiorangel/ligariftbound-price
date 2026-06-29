@@ -64,6 +64,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <span className="hidden sm:inline">Filtrar</span>
           </Link>
 
+          <Link
+            to="/depth"
+            className="shrink-0 flex items-center gap-1.5 border border-surface-500 hover:border-zinc-400 text-zinc-400 hover:text-zinc-100 text-sm px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18M7 16l4-4 4 4 4-6" />
+            </svg>
+            <span className="hidden sm:inline">Profundidade</span>
+          </Link>
+
           <a
             href="https://www.buymeacoffee.com/kojiro"
             target="_blank"
