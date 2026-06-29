@@ -39,14 +39,19 @@ export default function Depth() {
   const [xInput, setXInput] = useState(10)
   const [x, setX] = useState(10)
   const [editionFilter, setEditionFilter] = useState('')
+  const [minBasePrice, setMinBasePrice] = useState('')
   const [hideInsufficient, setHideInsufficient] = useState(true)
   const [sortCol, setSortCol] = useState<SortCol>('pct')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 50
 
   useEffect(() => {
     const t = setTimeout(() => setX(xInput), 150)
     return () => clearTimeout(t)
   }, [xInput])
+
+  useEffect(() => { setPage(1) }, [x, editionFilter, minBasePrice, hideInsufficient, sortCol, sortDir])
 
   const indexMap = useMemo(() => {
     if (!index) return new Map<string, { name: string; edition_code: string }>()
@@ -67,7 +72,12 @@ export default function Depth() {
         const meta = indexMap.get(entry.riftbound_id)
         return { entry, base, atX, pct, meta }
       })
-      .filter(r => !hideInsufficient || r.pct !== null)
+      .filter(r => {
+        if (hideInsufficient && r.pct === null) return false
+        const min = parseFloat(minBasePrice)
+        if (!isNaN(min) && min > 0 && (r.base === null || r.base < min)) return false
+        return true
+      })
       .sort((a, b) => {
         const dir = sortDir === 'desc' ? -1 : 1
         if (sortCol === 'pct') {
@@ -81,7 +91,10 @@ export default function Depth() {
         }
         return dir * ((a.atX ?? Infinity) - (b.atX ?? Infinity))
       })
-  }, [depth, indexMap, x, editionFilter, hideInsufficient, sortCol, sortDir])
+  }, [depth, indexMap, x, editionFilter, minBasePrice, hideInsufficient, sortCol, sortDir])
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   function toggleSort(col: SortCol) {
     if (sortCol === col) {
@@ -121,7 +134,7 @@ export default function Depth() {
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-4 mb-5 p-4 bg-surface-800 rounded-xl border border-surface-600">
         <div className="flex items-center gap-3 flex-1 min-w-52">
-          <label className="text-sm text-zinc-400 shrink-0 font-medium">Corte X</label>
+          <label className="text-sm text-zinc-400 shrink-0 font-medium">Corte por Unidade</label>
           <input
             type="range"
             min={1}
@@ -152,6 +165,22 @@ export default function Depth() {
             </option>
           ))}
         </select>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-zinc-400 shrink-0">Preço base &gt;</label>
+          <div className="relative">
+            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">R$</span>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              placeholder="0,00"
+              value={minBasePrice}
+              onChange={e => setMinBasePrice(e.target.value)}
+              className="w-24 bg-surface-700 border border-surface-500 rounded px-2 py-1.5 pl-8 text-sm text-zinc-100 focus:outline-none focus:border-gold-400"
+            />
+          </div>
+        </div>
 
         <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer select-none">
           <input
@@ -195,14 +224,14 @@ export default function Depth() {
             </button>
           </div>
 
-          {rows.map((row, i) => (
+          {pageRows.map((row, i) => (
             <Link
               key={row.entry.riftbound_id}
               to={`/card/${encodeURIComponent(row.entry.riftbound_id)}`}
               className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-700/50 hover:bg-surface-700 border border-surface-600/50 hover:border-surface-500 transition-all group"
             >
               <span className="w-8 shrink-0 text-center text-sm text-zinc-600 tabular-nums">
-                {i + 1}
+                {(page - 1) * PAGE_SIZE + i + 1}
               </span>
               <img
                 src={`${import.meta.env.BASE_URL}${imageUri(row.entry.riftbound_id)}`}
@@ -229,6 +258,28 @@ export default function Depth() {
               </span>
             </Link>
           ))}
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-4">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1.5 rounded-lg border border-surface-500 text-sm text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Anterior
+              </button>
+              <span className="text-sm text-zinc-500 tabular-nums">
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1.5 rounded-lg border border-surface-500 text-sm text-zinc-400 hover:text-zinc-100 hover:border-zinc-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Próxima →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </Layout>
