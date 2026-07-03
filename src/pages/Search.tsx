@@ -3,7 +3,15 @@ import { useSearchParams, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import RarityBadge from '../components/RarityBadge'
 import { getSearchIndex, getAllCards } from '../lib/searchIndex'
+import { useIndex } from '../hooks/useIndex'
+import { formatBRL } from '../lib/format'
 import type { CardData } from '../types'
+
+const SORTS = [
+  { value: '', label: 'Relevância' },
+  { value: 'price_asc', label: 'Menor preço' },
+  { value: 'price_desc', label: 'Maior preço' },
+]
 
 const EDITION_CODES = ['OGN', 'UNL', 'SFD', 'OGS', 'OPP', 'PR', 'JDG']
 const TYPES = ['Unit', 'Spell', 'Gear', 'Rune', 'Battlefield', 'Legend']
@@ -13,7 +21,7 @@ const RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Showcase', 'Promo']
 const PAGE_SIZE = 48
 
 function toggleFilter(item: string, current: string[], all: string[]): string[] {
-  if (current.length === 0) return all.filter(o => o !== item)
+  if (current.length === 0) return [item]
   if (current.includes(item)) {
     const next = current.filter(o => o !== item)
     return next.length === 0 ? [] : next
@@ -111,6 +119,10 @@ export default function Search() {
   const filterTypes = params.get('types')?.split(',').filter(Boolean) ?? []
   const filterDomains = params.get('domains')?.split(',').filter(Boolean) ?? []
   const filterRarities = params.get('rarities')?.split(',').filter(Boolean) ?? []
+  const sort = params.get('sort') ?? ''
+
+  const { data: index } = useIndex()
+  const priceMap = new Map((index ?? []).map(e => [e.riftbound_id, e]))
 
   const [localQuery, setLocalQuery] = useState(q)
   const [allResults, setAllResults] = useState<CardData[]>([])
@@ -171,10 +183,21 @@ export default function Search() {
       if (filterRarities.length > 0)
         candidates = candidates.filter(c => filterRarities.includes(c.rarity))
 
+      if (sort === 'price_asc' || sort === 'price_desc') {
+        candidates = [...candidates].sort((a, b) => {
+          const pa = priceMap.get(a.riftbound_id)?.min_price
+          const pb = priceMap.get(b.riftbound_id)?.min_price
+          if (pa == null && pb == null) return 0
+          if (pa == null) return 1
+          if (pb == null) return -1
+          return sort === 'price_asc' ? pa - pb : pb - pa
+        })
+      }
+
       setAllResults(candidates)
       setLoading(false)
     })()
-  }, [q, editionsKey, typesKey, domainsKey, raritiesKey])
+  }, [q, editionsKey, typesKey, domainsKey, raritiesKey, sort, index])
 
   // Infinite scroll: load more when sentinel enters viewport
   useEffect(() => {
@@ -217,6 +240,7 @@ export default function Search() {
   const onlyType = (t: string) => updateParams({ types: t })
   const onlyDomain = (d: string) => updateParams({ domains: d })
   const onlyRarity = (r: string) => updateParams({ rarities: r })
+  const setSort = (value: string) => updateParams({ sort: value || null })
 
   const hasFilters =
     filterEditions.length > 0 || filterTypes.length > 0 ||
@@ -249,6 +273,16 @@ export default function Search() {
         <FilterDropdown label="Tipo"     options={TYPES}         selected={filterTypes}    onToggle={toggleType}    onOnly={onlyType}    />
         <FilterDropdown label="Domain"   options={ALL_DOMAINS}   selected={filterDomains}  onToggle={toggleDomain}  onOnly={onlyDomain}  />
         <FilterDropdown label="Raridade" options={RARITIES}      selected={filterRarities} onToggle={toggleRarity}  onOnly={onlyRarity}  />
+
+        <select
+          value={sort}
+          onChange={e => setSort(e.target.value)}
+          className="text-sm px-3 py-1.5 rounded-lg border border-surface-500 bg-surface-800 text-zinc-300 hover:border-zinc-400 hover:text-zinc-200 focus:outline-none focus:border-gold-400 transition-colors"
+        >
+          {SORTS.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
 
         {hasFilters && (
           <button
@@ -290,6 +324,9 @@ export default function Search() {
                     <span className="text-xs text-zinc-500">{r.edition_code}</span>
                     <RarityBadge rarity={r.rarity} />
                   </div>
+                  <p className="text-sm font-bold text-zinc-100 pt-1">
+                    {priceMap.get(r.riftbound_id) ? formatBRL(priceMap.get(r.riftbound_id)!.min_price) : '—'}
+                  </p>
                 </div>
               </Link>
             ))}
