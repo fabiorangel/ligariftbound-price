@@ -21,9 +21,9 @@ export async function getSearchIndex(): Promise<MiniSearch> {
 export async function getAllCards(): Promise<CardData[]> {
   if (allCardsCache) return allCardsCache
   const base = import.meta.env.BASE_URL
-  const editions = ['ogn', 'unl', 'sfd', 'opp', 'ogs', 'pr', 'jdg']
+  const editions: Array<{ code: string }> = await fetch(`${base}data/editions.json`).then(r => r.json())
   const results = await Promise.all(
-    editions.map(ed => fetch(`${base}data/${ed}/cards.json`).then(r => r.json()))
+    editions.map(ed => fetch(`${base}data/${ed.code.toLowerCase()}/cards.json`).then(r => r.json()))
   )
   allCardsCache = results.flat()
   return allCardsCache
