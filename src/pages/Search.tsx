@@ -4,6 +4,7 @@ import Layout from '../components/Layout'
 import RarityBadge from '../components/RarityBadge'
 import { getSearchIndex, getAllCards } from '../lib/searchIndex'
 import { useIndex } from '../hooks/useIndex'
+import { useEditions } from '../hooks/useEditions'
 import { formatBRL } from '../lib/format'
 import type { CardData } from '../types'
 
@@ -13,7 +14,6 @@ const SORTS = [
   { value: 'price_desc', label: 'Maior preço' },
 ]
 
-const EDITION_CODES = ['OGN', 'UNL', 'SFD', 'OGS', 'OPP', 'PR', 'JDG']
 const TYPES = ['Unit', 'Spell', 'Gear', 'Rune', 'Battlefield', 'Legend']
 const ALL_DOMAINS = ['Body', 'Calm', 'Chaos', 'Colorless', 'Fury', 'Mind', 'Order']
 const RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Showcase', 'Promo']
@@ -123,6 +123,9 @@ export default function Search() {
 
   const { data: index } = useIndex()
   const priceMap = new Map((index ?? []).map(e => [e.riftbound_id, e]))
+
+  const { data: editions } = useEditions()
+  const EDITION_CODES = (editions ?? []).map(e => e.code)
 
   const [localQuery, setLocalQuery] = useState(q)
   const [allResults, setAllResults] = useState<CardData[]>([])
